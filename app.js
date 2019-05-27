@@ -24,6 +24,29 @@ var budgetController = (function () {
 		}
 	}
 
+	return {
+		addItem: function (type, des, val) {
+			var newItem, ID;
+
+			// Create new ID
+			if (data.allItems[type].length > 0) {
+				ID = data.allItems[type][data.allItems[type].length - 1].id + 1;
+			} else {
+				ID = 0;
+			}
+
+			if (type === 'exp') {
+				newItem = new Expoense(ID, des, val);
+			} else if (type === 'inc') {
+				newItem = new Income(ID, des, val);
+			}
+
+			data.allItems[type].push(newItem);
+
+			return newItem;
+		}
+	};
+
 })();
 
 // UI CONTROLLER
@@ -67,10 +90,11 @@ var controller = (function (budgetCtrl, UICtrl) {
 	};
 
 	var ctrlAddItem = function () {
+		var input, newItem;
 		// get the filed input data
-		var input = UICtrl.getinput();
+		input = UICtrl.getinput();
 		// add the item to the budget controller
-
+		newItem = budgetCtrl.addItem(input.type, input.description, input.value);
 		// add the item to UI
 
 		//  calculate the budget
