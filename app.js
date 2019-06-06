@@ -7,6 +7,18 @@ var budgetController = (function () {
 		this.value = value;
 	}
 
+	Expense.prototype.calculatePercentage = function (totalIncome) {
+		if (totalIncome > 0) {
+			this.percentage = Math.round((this.value / totalIncome) * 100);
+		} else {
+			this.percentage = -1;
+		}
+	};
+
+	Expense.prototype.getPercentage = function () {
+		return this.percentage;
+	}
+
 	var Income = function (id, description, value) {
 		this.id = id;
 		this.description = description;
@@ -83,6 +95,19 @@ var budgetController = (function () {
 			}
 		},
 
+		calculatePercentages: function () {
+			data.allItems.exp.forEach(function (cur) {
+				cur.calculatePercentage(data.totals.inc);
+			});
+		},
+
+		getPercentages: function () {
+			var allPerc = data.allItems.exp.map(function (cur) {
+				return cur.getPercentage();
+			});
+			return allPerc;
+		},
+
 		getBudget: function () {
 			return {
 				budget: data.budget,
@@ -113,7 +138,8 @@ var UIController = (function () {
 		incomeLabel: '.budget__income--value',
 		expenseLabel: '.budget__expenses--value',
 		percentageLabel: '.budget__expenses--percentage',
-		container: '.container'
+		container: '.container',
+		expensesPercLabel: '.item__percentage'
 	}
 
 	return {
@@ -132,7 +158,7 @@ var UIController = (function () {
 				html = '<div class="item clearfix" id="income-%id%"><div class="item__description">%description%</div><div class="right clearfix"><div class="item__value">%value%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>';
 			} else if (type === 'exp') {
 				element = DOMstrings.expensesContainer;
-				html = '<div class="item clearfix" id="expense-%id%"><div class="item__description">%description%</div><div class="right clearfix"><div class="item__value">%value%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>';
+				html = '<div class="item clearfix" id="expense-%id%"><div class="item__description">%description%</div><div class="right clearfix"><div class="item__value">%value%</div><div class="item__percentage">---</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>';
 			}
 			// replace the placeholder text with some actual data
 			newHtml = html.replace('%id%', obj.id);
@@ -173,6 +199,24 @@ var UIController = (function () {
 			}
 		},
 
+		displayPercentages: function (percentages) {
+			var fields = document.querySelectorAll(DOMstrings.expensesPercLabel);
+
+			var nodeListForEach = function (list, callback) {
+				for (var i = 0; i < list.length; i++) {
+					callback(list[i], i);
+				}
+			}
+
+			nodeListForEach(fields, function (current, index) {
+				if (percentages[index] > 0) {
+					current.textContent = percentages[index] + '%';
+				} else {
+					current.textContent = '---';
+				}
+			});
+		},
+
 		getDOMstrings: function () {
 			return DOMstrings;
 		}
@@ -194,7 +238,6 @@ var controller = (function (budgetCtrl, UICtrl) {
 			}
 		});
 
-
 		document.querySelector(DOM.container).addEventListener('click', ctrlDeleteItem);
 	};
 
@@ -206,6 +249,15 @@ var controller = (function (budgetCtrl, UICtrl) {
 		// display the budget on the UI
 		UICtrl.displayBudget(budget)
 	}
+
+	var updatePercentages = function () {
+		// calculate percentage
+		budgetCtrl.calculatePercentages();
+		// read percentage from the budget controller
+		var percentages = budgetCtrl.getPercentages();
+		// update the ui with new percentage
+		UICtrl.displayPercentages(percentages);
+	};
 
 	var ctrlAddItem = function () {
 		var input, newItem;
@@ -221,7 +273,8 @@ var controller = (function (budgetCtrl, UICtrl) {
 			UICtrl.clearFields();
 			// calculate the budget
 			updateBudget();
-			// display the budget on the UI
+			// update percentages
+			updatePercentages();
 		}
 	};
 
@@ -245,6 +298,8 @@ var controller = (function (budgetCtrl, UICtrl) {
 			UICtrl.deleteListItem(itemID);
 			// Update and show the new budget
 			updateBudget();
+
+			updatePercentages();
 		}
 	};
 
